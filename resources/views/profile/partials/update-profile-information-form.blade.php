@@ -1,4 +1,4 @@
-<section>
+ <section>
     <header>
         <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
             {{ __('Profile Information') }}
@@ -16,6 +16,8 @@
     <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
         @csrf
         @method('patch')
+
+        <img src={{'/storage/' . $user->user_image}} >
 
         <div>
             <x-input-label for="name" :value="__('Name')" />

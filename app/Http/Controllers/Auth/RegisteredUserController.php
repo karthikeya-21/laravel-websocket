@@ -35,14 +35,22 @@ class RegisteredUserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
+        $token = md5(uniqid());
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'token'=>$token,
         ]);
 
+        if($request->file('image')){
+            $path=$request->file('image')->store('avatars','public');
+            User::where('token',$token)->update(['user_image'=>$path]);
+        }
+
         event(new Registered($user));
+
 
         Auth::login($user);
 

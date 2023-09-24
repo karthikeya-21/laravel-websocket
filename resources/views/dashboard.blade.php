@@ -5,7 +5,7 @@
     max-width: 800px; /* Adjust the max width as needed */
     margin: 0 auto;
     padding: 10px;
-    max-height: 400px; /* Adjust the maximum height as needed */
+    max-height: 200px; /* Adjust the maximum height as needed */
     overflow-y: auto;
     /* border: 1px solid #ccc; */
 }
@@ -61,8 +61,11 @@
 
     <script>
         // Create a WebSocket connection to the server
-        var conn = new WebSocket('ws://10.9.28.248:8090/');
-
+        var conn = new WebSocket('ws://127.0.0.1:8090/?token={{auth()->user()->token}}');
+        function scrollContainerToBottom() {
+    const msgsContainer = document.getElementById('msgs');
+    msgsContainer.scrollTop = msgsContainer.scrollHeight;
+}
         // Handle the connection being opened
         conn.onopen = function (e) {
             var data={
@@ -82,6 +85,7 @@
             // Display the received message in the 'msgs' div
             const msgsDiv = document.getElementById('msgs');
             msgsDiv.innerHTML += `<p class='user-message'>${data.user} : ${data.msg}</p>`;
+            scrollContainerToBottom();
         });
 
         // Handle sending a message when the button is clicked
@@ -95,10 +99,12 @@
             }
             // Send the message to the server
             conn.send(JSON.stringify(data));
+            console.log('Message sent:', message.value);
             message.value='';
             const msgsDiv = document.getElementById('msgs');
             msgsDiv.innerHTML += `<p class='current-user-message'>You : ${data.msg}</p>`;
-            console.log('Message sent:', message);
+            scrollContainerToBottom();
+
         });
     </script>
 </x-app-layout>
