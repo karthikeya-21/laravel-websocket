@@ -2,29 +2,3 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Style the message container */
-#msgs {
-    max-width: 500px; /* Adjust the max width as needed */
-    margin: 0 auto;
-    padding: 10px;
-    border: 1px solid #ccc;
-    background-color: #f9f9f9;
-}
-
-/* Style user messages (sent by others) */
-.user-message {
-    background-color: #e0e0e0;
-    padding: 5px;
-    margin: 5px 0;
-    border-radius: 5px;
-}
-
-/* Style current user messages */
-.current-user-message {
-    background-color: #4CAF50;
-    color: white;
-    padding: 5px;
-    margin: 5px 0;
-    border-radius: 5px;
-    text-align: right;
-}

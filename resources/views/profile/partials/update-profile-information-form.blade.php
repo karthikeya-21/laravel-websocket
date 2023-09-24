@@ -17,7 +17,7 @@
         @csrf
         @method('patch')
 
-        <img src={{'/storage/' . $user->user_image}} >
+        <!-- <img src="{{ '/storage/' . $user->user_image }}" > -->
 
         <div>
             <x-input-label for="name" :value="__('Name')" />
