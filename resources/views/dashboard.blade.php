@@ -31,13 +31,16 @@
     text-align: right;
 }
 
+li{
+    border:none !important;
+}
 .message-left,
 .message-right {
   list-style: none;
   padding: 8px 12px;
   margin: 12px;
   max-width: 250px;
-  font-size: 18px;
+  font-size: 15px;
   word-wrap: break-word;
 }
 
@@ -72,6 +75,50 @@
             margin: 0 auto;
             padding: 10px
         }
+        .container-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* .col-lg-4 {
+            flex: 0 0 33.333333%;
+            max-width: 33.333333%;
+        }
+
+        .col-lg-8 {
+            flex: 0 0 66.666667%;
+            max-width: 66.666667%;
+        } */
+                /* User Tile Styles */
+                .user-tile {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .user-avatar {
+            width: 50px; /* Adjust the size as needed */
+            height: 50px; /* Adjust the size as needed */
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: bold;
+        }
+
+        .user-status {
+            font-size: 14px;
+            color: #666;
+        }
+        .dark-mode {
+            background-color: #333; /* Dark card background color */
+            color: #ffffff; /* Text color in dark mode */
+        }
 
     </style>
     <x-slot name="header">
@@ -83,14 +130,55 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                <ul id="msgs">
-                </ul>
+            <div class="dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6  text-gray-900 dark:text-gray-100">
+                <div class="container">
+                        <div class="container-row">
+                            <!-- Users List Column (col-lg-4) -->
+                            <div class="col-lg-3">
+                                <div class="users-list" id="users-list">
+                                    <!-- Your user list content goes here -->
+                                </div>
+                            </div>
 
-                <div id="send-container">
-                <x-my-input type="text" id="msg" placeholder="Enter Your Message"/>
-                <x-primary-button id="send-btn">Send Message</x-primary-button>
+                            <!-- Messages Column (col-lg-8) -->
+                            <div class="col-lg-6">
+                                <ul id="msgs">
+                                    <!-- Your messages content goes here -->
+                                </ul>
+
+                                <!-- Send Message Container -->
+                                <div id="send-container">
+                                    <x-my-input type="text" id="msg" placeholder="Enter Your Message" />
+                                    <button class="btn btn-primary" id="send-btn">Send Message</button>
+                                </div>
+                            </div>
+                            <div class="col-lg-3">
+                            <div class="container mt-5">
+        <div class="card dark-mode">
+            <div class="card-header">
+                <h5 class="card-title">User List</h5>
+            </div>
+            <div class="card-body" >
+                <ul class="list-group dark-mode" id="unconnected_users">
+                </ul>
+            </div>
+        </div>
+        <div class="card dark-mode mt-4">
+            <div class="card-header">
+                <h5 class="card-title">Requests</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group dark-mode" id="requests">
+
+                </ul>
+            </div>
+        </div>
+    </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
                 </div>
             </div>
@@ -104,7 +192,10 @@
     <script>
         // Create a WebSocket connection to the server
         var conn = new WebSocket('ws://127.0.0.1:8090/?token={{auth()->user()->token}}');
+        console.log(conn);
         const dateTime = new Date();
+        var from_user_id={{Auth::user()->id}};
+        var to_user_id='';
         function scrollContainerToBottom() {
     const msgsContainer = document.getElementById('msgs');
     msgsContainer.scrollTop = msgsContainer.scrollHeight;
@@ -117,14 +208,18 @@
                 msg:' {{Auth::user()->name}} has entered the room',
                 img:'{{Auth::user()->user_image}}',
             }
+            
             conn.send(JSON.stringify(data));
             console.log("Connection established!");
+            load_all_users(from_user_id);
+            load_unread_notification(from_user_id);
         }
 
         // Listen for incoming messages from the server
         conn.addEventListener('message', event => {
             const message = event.data;
             var data = JSON.parse(message);
+            
             // Display the received message in the 'msgs' div
             const msgsDiv = document.getElementById('msgs');
             if(data.type=='msg'){
@@ -136,20 +231,105 @@
                     </p>
                 </li>
                 `;
-            msgsDiv.innerHTML += `<div class='user-message flex flex-row'><img class="w-16 h-16 rounded-full" src='storage/${data.img}' />&nbsp;&nbsp;&nbsp; ${element} </div>`;
+            msgsDiv.innerHTML += `<div class='user-message flex flex-row'><img class="w-16 h-16 rounded-full mt-4" src='storage/${data.img}' />&nbsp;&nbsp;&nbsp; ${element} </div>`;
             scrollContainerToBottom();
             }
+            if (data.type == 'load_connected_users') {
+                const users_list = document.getElementById('users-list');
+                var Userdata = data.data;
+
+                Userdata.forEach(user => {
+                    const userTileButton = document.createElement("button");
+                    userTileButton.classList.add("user-tile");
+
+                    // Create user avatar (profile picture)
+                    const userAvatar = document.createElement("img");
+                    userAvatar.classList.add("user-avatar");
+                    userAvatar.src = `/storage/${user.user_image}`; // Set the source of the profile picture
+
+                    // Create user info container
+                    const userInfo = document.createElement("div");
+                    userInfo.classList.add("user-info");
+
+                    // Create user name element
+                    const userName = document.createElement("div");
+                    userName.classList.add("user-name");
+                    userName.textContent = user.name; // Set the user's name
+
+                    // Create user status element
+                    const userStatus = document.createElement("div");
+                    userStatus.classList.add("user-status");
+                    userStatus.textContent = user.status; // Set the user's status
+
+                    // Append elements to user tile container
+                    userInfo.appendChild(userName);
+                    userInfo.appendChild(userStatus);
+                    userTileButton.appendChild(userAvatar);
+                    userTileButton.appendChild(userInfo);
+                    userTileButton.addEventListener("click", () => {
+                        to_user_id = user.id;
+                        // You can now use "to_user" to send messages to this user
+                        console.log(`Message to_user: ${to_user_id}`);
+                });
+
+                    // Append user tile to users list
+                    users_list.appendChild(userTileButton);
+                    });
+                }
+                if(data.type=='load_all_users'){
+                    const users_list = document.getElementById('unconnected_users');
+                    var userData = data.data;
+                    function createUserListItem(user) {
+                            const listItem = document.createElement("li");
+                            listItem.className = "list-group-item d-flex justify-content-between align-items-center dark-mode";
+                            listItem.innerHTML = `
+                                <div class="d-flex align-items-center">
+                                    <img src="/storage/${user.user_image}" alt="${user.name}" class="user-avatar">
+                                    <span>${user.name}</span>
+                                </div>
+                                <button class="btn btn-primary" onclick="send_request(this,`+from_user_id+`,`+user.id+`)"><i class="fas fa-paper-plane"></i></button>
+                            `;
+                            return listItem;
+                        }
+                    userData.forEach(user => {
+                    const listItem = createUserListItem(user);
+                    users_list.appendChild(listItem);
+                    });
+                }
+
+                if(data.type=='response_load_notification'){
+                    console.log("Received");
+                    const users_list=document.getElementById('requests');
+                    var userData = data.data;
+                    function createUserListItem(user) {
+                            const listItem = document.createElement("li");
+                            listItem.className = "list-group-item d-flex justify-content-between align-items-center dark-mode";
+                            listItem.innerHTML = `
+                                <div class="d-flex align-items-center">
+                                    <span>${user.name}</span>
+                                </div>
+                                <button class="btn btn-primary"><i class="fa fa-check""></i></button>
+                                <button class="btn btn-danger"><i class="fa fa-times""></i></button>
+                            `;
+                            return listItem;
+                        }
+                    userData.forEach(user => {
+                            const listItem = createUserListItem(user);
+                            users_list.appendChild(listItem);
+                    });
+                }
+
         });
 
         // Handle sending a message when the button is clicked
         const sendMessageButton = document.getElementById('send-btn');
         sendMessageButton.addEventListener('click', () => {
             let message = document.getElementById('msg');
-
             var data={
-                type:"msg",
+                type:'msg',
                 user:"{{Auth::user()->name}}",
                 msg:message.value,
+                to_user_id:to_user_id,
                 img:"{{Auth::user()->user_image}}",
                 dateTime: dateTime.toISOString(),
             }
@@ -165,9 +345,38 @@
                     </p>
                 </li>
                 `;
-            msgsDiv.innerHTML += `<div class='current-user-message flex flex-row-reverse'>&nbsp;&nbsp;&nbsp;<img class="w-16 h-16 rounded-full" src={{ '/storage/' . auth()->user()->user_image}} /> &nbsp;&nbsp;&nbsp;${element}&nbsp;&nbsp; </div>`;
+            msgsDiv.innerHTML += `<div class='current-user-message flex flex-row-reverse'>&nbsp;&nbsp;&nbsp;<img class="w-16 h-16 rounded-full mt-4" src={{ '/storage/' . auth()->user()->user_image}} /> &nbsp;&nbsp;&nbsp;${element}&nbsp;&nbsp; </div>`;
             scrollContainerToBottom();
 
         });
+
+        load_all_users=function(){
+            var data={
+                'from_user_id':`${from_user_id}`,
+                type:'load_all_users',
+            }
+            conn.send(JSON.stringify(data));
+        }
+        function send_request(element, from_user_id, to_user_id)
+        {
+            var data = {
+                from_user_id : from_user_id,
+                to_user_id : to_user_id,
+                type : 'request_chat_user'
+            };
+
+            element.disabled = true;
+
+            conn.send(JSON.stringify(data));
+        }
+        function load_unread_notification(user_id)
+        {
+            var data = {
+                user_id : user_id,
+                type : 'load_notifications'
+            };
+            conn.send(JSON.stringify(data));
+        }
+
     </script>
 </x-app-layout>
