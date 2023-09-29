@@ -208,118 +208,149 @@ li{
                 msg:' {{Auth::user()->name}} has entered the room',
                 img:'{{Auth::user()->user_image}}',
             }
-            
+
             conn.send(JSON.stringify(data));
             console.log("Connection established!");
             load_all_users(from_user_id);
             load_unread_notification(from_user_id);
+            load_friends(from_user_id);
         }
 
         // Listen for incoming messages from the server
         conn.addEventListener('message', event => {
-            const message = event.data;
-            var data = JSON.parse(message);
-            
-            // Display the received message in the 'msgs' div
-            const msgsDiv = document.getElementById('msgs');
-            if(data.type=='msg'){
-                const element = `
-                <li class='message-left'>
-                    <p class="message">
-                    ${data.msg}
-                    <span>${data.user} ● ${moment(data.dateTime).fromNow()}</span>
-                    </p>
-                </li>
-                `;
-            msgsDiv.innerHTML += `<div class='user-message flex flex-row'><img class="w-16 h-16 rounded-full mt-4" src='storage/${data.img}' />&nbsp;&nbsp;&nbsp; ${element} </div>`;
-            scrollContainerToBottom();
-            }
-            if (data.type == 'load_connected_users') {
-                const users_list = document.getElementById('users-list');
-                var Userdata = data.data;
+    const message = event.data;
+    var data = JSON.parse(message);
 
-                Userdata.forEach(user => {
-                    const userTileButton = document.createElement("button");
-                    userTileButton.classList.add("user-tile");
+    // Display the received message in the 'msgs' div
+    const msgsDiv = document.getElementById('msgs');
+    if (data.type == 'msg') {
+        const element = `
+        <li class='message-left'>
+            <p class="message">
+            ${data.msg}
+            <span>${data.user} ● ${moment(data.dateTime).fromNow()}</span>
+            </p>
+        </li>
+        `;
+        msgsDiv.innerHTML += `<div class='user-message flex flex-row'><img class="w-16 h-16 rounded-full mt-4" src='storage/${data.img}' />&nbsp;&nbsp;&nbsp; ${element} </div>`;
+        scrollContainerToBottom();
+    }
+    if (data.type == 'load_connected_users') {
+        const users_list = document.getElementById('users-list');
+        users_list.innerHTML = '';
+        var Userdata = data.data;
 
-                    // Create user avatar (profile picture)
-                    const userAvatar = document.createElement("img");
-                    userAvatar.classList.add("user-avatar");
-                    userAvatar.src = `/storage/${user.user_image}`; // Set the source of the profile picture
+        Userdata.forEach(user => {
+            const userTileButton = document.createElement("button");
+            userTileButton.classList.add("user-tile");
 
-                    // Create user info container
-                    const userInfo = document.createElement("div");
-                    userInfo.classList.add("user-info");
+            // Create user avatar (profile picture)
+            const userAvatar = document.createElement("img");
+            userAvatar.classList.add("user-avatar");
+            userAvatar.src = `/storage/${user.user_image}`; // Set the source of the profile picture
 
-                    // Create user name element
-                    const userName = document.createElement("div");
-                    userName.classList.add("user-name");
-                    userName.textContent = user.name; // Set the user's name
+            // Create user info container
+            const userInfo = document.createElement("div");
+            userInfo.classList.add("user-info");
 
-                    // Create user status element
-                    const userStatus = document.createElement("div");
-                    userStatus.classList.add("user-status");
-                    userStatus.textContent = user.status; // Set the user's status
+            // Create user name element
+            const userName = document.createElement("div");
+            userName.classList.add("user-name");
+            userName.textContent = user.name; // Set the user's name
 
-                    // Append elements to user tile container
-                    userInfo.appendChild(userName);
-                    userInfo.appendChild(userStatus);
-                    userTileButton.appendChild(userAvatar);
-                    userTileButton.appendChild(userInfo);
-                    userTileButton.addEventListener("click", () => {
-                        to_user_id = user.id;
-                        // You can now use "to_user" to send messages to this user
-                        console.log(`Message to_user: ${to_user_id}`);
-                });
+            // Create user status element
+            const userStatus = document.createElement("div");
+            userStatus.classList.add("user-status");
+            userStatus.textContent = user.user_status; // Set the user's status
 
-                    // Append user tile to users list
-                    users_list.appendChild(userTileButton);
-                    });
-                }
-                if(data.type=='load_all_users'){
-                    const users_list = document.getElementById('unconnected_users');
-                    var userData = data.data;
-                    function createUserListItem(user) {
-                            const listItem = document.createElement("li");
-                            listItem.className = "list-group-item d-flex justify-content-between align-items-center dark-mode";
-                            listItem.innerHTML = `
-                                <div class="d-flex align-items-center">
-                                    <img src="/storage/${user.user_image}" alt="${user.name}" class="user-avatar">
-                                    <span>${user.name}</span>
-                                </div>
-                                <button class="btn btn-primary" onclick="send_request(this,`+from_user_id+`,`+user.id+`)"><i class="fas fa-paper-plane"></i></button>
-                            `;
-                            return listItem;
-                        }
-                    userData.forEach(user => {
-                    const listItem = createUserListItem(user);
-                    users_list.appendChild(listItem);
-                    });
-                }
+            // Append elements to user tile container
+            userInfo.appendChild(userName);
+            userInfo.appendChild(userStatus);
+            userTileButton.appendChild(userAvatar);
+            userTileButton.appendChild(userInfo);
+            userTileButton.addEventListener("click", () => {
+                to_user_id = user.id;
+                // You can now use "to_user" to send messages to this user
+                console.log(`Message to_user: ${to_user_id}`);
+            });
 
-                if(data.type=='response_load_notification'){
-                    console.log("Received");
-                    const users_list=document.getElementById('requests');
-                    var userData = data.data;
-                    function createUserListItem(user) {
-                            const listItem = document.createElement("li");
-                            listItem.className = "list-group-item d-flex justify-content-between align-items-center dark-mode";
-                            listItem.innerHTML = `
-                                <div class="d-flex align-items-center">
-                                    <span>${user.name}</span>
-                                </div>
-                                <button class="btn btn-primary"><i class="fa fa-check""></i></button>
-                                <button class="btn btn-danger"><i class="fa fa-times""></i></button>
-                            `;
-                            return listItem;
-                        }
-                    userData.forEach(user => {
-                            const listItem = createUserListItem(user);
-                            users_list.appendChild(listItem);
-                    });
-                }
-
+            // Append user tile to users list
+            users_list.appendChild(userTileButton);
         });
+    }
+    if (data.type == 'load_all_users') {
+        const users_list = document.getElementById('unconnected_users');
+        var userData = data.data;
+
+        function createUserListItem(user) {
+            const listItem = document.createElement("li");
+            listItem.className = "list-group-item d-flex justify-content-between align-items-center dark-mode";
+            listItem.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <img src="/storage/${user.user_image}" alt="${user.name}" class="user-avatar">
+                    <span>${user.name}</span>
+                </div>
+                <button class="btn btn-primary" onclick="send_request(this, ${from_user_id}, ${user.id})"><i class="fas fa-paper-plane"></i></button>
+            `;
+            return listItem;
+        }
+
+        users_list.innerHTML = '';
+        userData.forEach(user => {
+            const listItem = createUserListItem(user);
+            users_list.appendChild(listItem);
+        });
+    }
+
+    if (data.type == 'response_load_notification') {
+        console.log(data);
+        load_all_users(from_user_id);
+        const users_list = document.getElementById('requests');
+        users_list.innerHTML = '';
+        var userData = data.data;
+
+        function createUserListItem(user) {
+            console.log(user);
+            const listItem = document.createElement("li");
+            listItem.className = "list-group-item d-flex justify-content-between align-items-center dark-mode";
+
+            const nameDiv = document.createElement("div");
+            nameDiv.className = "d-flex align-items-center";
+            const userName = document.createElement("span");
+            userName.textContent = user.name;
+
+            nameDiv.appendChild(userName);
+
+            // Determine which buttons to add based on notification_type
+            let tail='';
+            if (user.notification_type === 'Receive Request') {
+                tail += '<button class="btn btn-primary" onclick="process_request(' + user.id + ',' + user.from_user_id + ',' + user.to_user_id + ', `Approve`)"><i class="fa fa-check"></i></button>';
+                tail += '<button class="btn btn-danger" onclick="process_request(' + user.id + ',' + user.from_user_id + ',' + user.to_user_id + ', `Reject`)"><i class="fa fa-times"></i></button>';
+            } else {
+                tail = `<button class="btn btn-info">Request sent</button>`;
+            }
+
+            listItem.appendChild(nameDiv);
+            listItem.innerHTML += tail; // Use innerHTML to add the tail content
+
+            return listItem;
+        }
+
+        userData.forEach(user => {
+            const listItem = createUserListItem(user);
+            users_list.appendChild(listItem);
+        });
+    }
+    if (data.type == 'updateUI') {
+        load_all_users(from_user_id);
+        load_unread_notification(from_user_id);
+    }
+    if (data.type == 'response_process_chat_request') {
+        load_unread_notification(data.user_id);
+        load_friends(data.user_id);
+    }
+});
+
 
         // Handle sending a message when the button is clicked
         const sendMessageButton = document.getElementById('send-btn');
@@ -354,6 +385,7 @@ li{
             var data={
                 'from_user_id':`${from_user_id}`,
                 type:'load_all_users',
+                search_query:'',
             }
             conn.send(JSON.stringify(data));
         }
@@ -375,6 +407,26 @@ li{
                 user_id : user_id,
                 type : 'load_notifications'
             };
+            conn.send(JSON.stringify(data));
+        }
+        function load_friends(user_id){
+            var data = {
+		    from_user_id : from_user_id,
+            type : 'request_connected_chat_user'
+        };
+
+        conn.send(JSON.stringify(data));
+        }
+
+        function process_request(chat_id,from_user,to_user,action){
+            var data = {
+                chat_request_id : chat_id,
+                from_user_id : from_user,
+                to_user_id : to_user,
+                action : action,
+                type : 'request_process_chat_request'
+            };
+
             conn.send(JSON.stringify(data));
         }
 
