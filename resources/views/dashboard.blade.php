@@ -5,7 +5,7 @@
     max-width: 800px; /* Adjust the max width as needed */
     margin: 0 auto;
     padding: 10px;
-    max-height: 600px; /* Adjust the maximum height as needed */
+    max-height: 400px; /* Adjust the maximum height as needed */
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
@@ -143,14 +143,16 @@ li{
 
                             <!-- Messages Column (col-lg-8) -->
                             <div class="col-lg-6">
-                                <ul id="msgs">
-                                    <!-- Your messages content goes here -->
-                                </ul>
+                                <div class="card dark-mode">
+                                    <div class="card-header dark-mode">
+                                        <div class="row">
+                                            <div class="col col-md-6" id="chat_header"><b>Chat Area</b></div>
+                                            <div class="col col-md-6" id="close_chat_area"></div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body" id="chat_area">
 
-                                <!-- Send Message Container -->
-                                <div id="send-container">
-                                    <x-my-input type="text" id="msg" placeholder="Enter Your Message" />
-                                    <button class="btn btn-primary" id="send-btn">Send Message</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-lg-3">
@@ -197,9 +199,9 @@ li{
         var from_user_id={{Auth::user()->id}};
         var to_user_id='';
         function scrollContainerToBottom() {
-    const msgsContainer = document.getElementById('msgs');
-    msgsContainer.scrollTop = msgsContainer.scrollHeight;
-}
+                const msgsContainer = document.getElementById('msgs');
+                msgsContainer.scrollTop = msgsContainer.scrollHeight;
+            }
         // Handle the connection being opened
         conn.onopen = function (e) {
             var data={
@@ -270,6 +272,7 @@ li{
             userTileButton.appendChild(userInfo);
             userTileButton.addEventListener("click", () => {
                 to_user_id = user.id;
+                make_chat_area(user.id,user.name);
                 // You can now use "to_user" to send messages to this user
                 console.log(`Message to_user: ${to_user_id}`);
             });
@@ -352,34 +355,7 @@ li{
 });
 
 
-        // Handle sending a message when the button is clicked
-        const sendMessageButton = document.getElementById('send-btn');
-        sendMessageButton.addEventListener('click', () => {
-            let message = document.getElementById('msg');
-            var data={
-                type:'msg',
-                user:"{{Auth::user()->name}}",
-                msg:message.value,
-                to_user_id:to_user_id,
-                img:"{{Auth::user()->user_image}}",
-                dateTime: dateTime.toISOString(),
-            }
-            // Send the message to the server
-            conn.send(JSON.stringify(data));
-            message.value='';
-            const msgsDiv = document.getElementById('msgs');
-            const element = `
-                <li class='message-right'>
-                    <p class="message">
-                    ${data.msg}
-                    <span>${data.user} ● ${moment(data.dateTime).fromNow()}</span>
-                    </p>
-                </li>
-                `;
-            msgsDiv.innerHTML += `<div class='current-user-message flex flex-row-reverse'>&nbsp;&nbsp;&nbsp;<img class="w-16 h-16 rounded-full mt-4" src={{ '/storage/' . auth()->user()->user_image}} /> &nbsp;&nbsp;&nbsp;${element}&nbsp;&nbsp; </div>`;
-            scrollContainerToBottom();
 
-        });
 
         load_all_users=function(){
             var data={
@@ -429,6 +405,66 @@ li{
 
             conn.send(JSON.stringify(data));
         }
+        function make_chat_area(user_id, to_user_name)
+        {
+            var html = `
+            <ul id="msgs"></ul>
+            <div id="chat_history"></div>
+            <div class="input-group mb-3">
+            <div id="send-container">
+                                    <x-my-input type="text" id="msg" placeholder="Enter Your Message" />
+                                    <button class="btn btn-primary" id="send-btn">Send Message</button>
+            </div>
+            </div>
+            `;
 
+            document.getElementById('chat_area').innerHTML= html;
+
+            document.getElementById('chat_header').innerHTML = 'Chat with <b>'+to_user_name+'</b>';
+
+            document.getElementById('close_chat_area').innerHTML = '<button type="button" id="close_chat" class="btn btn-danger btn-sm float-end" onclick="close_chat();"><i class="fas fa-times"></i></button>';
+
+            to_user_id = user_id;
+                    // Handle sending a message when the button is clicked
+        const sendMessageButton = document.getElementById('send-btn');
+        sendMessageButton.addEventListener('click', () => {
+            let message = document.getElementById('msg');
+            if(message.value.trim().length>0){
+            var data={
+                type:'msg',
+                user:"{{Auth::user()->name}}",
+                msg:message.value,
+                to_user_id:to_user_id,
+                img:"{{Auth::user()->user_image}}",
+                dateTime: dateTime.toISOString(),
+            }
+            // Send the message to the server
+            conn.send(JSON.stringify(data));
+            message.value='';
+            const msgsDiv = document.getElementById('msgs');
+            const element = `
+                <li class='message-right'>
+                    <p class="message">
+                    ${data.msg}
+                    <span>${data.user} ● ${moment(data.dateTime).fromNow()}</span>
+                    </p>
+                </li>
+                `;
+            msgsDiv.innerHTML += `<div class='current-user-message flex flex-row-reverse'>&nbsp;&nbsp;&nbsp;<img class="w-16 h-16 rounded-full mt-4" src={{ '/storage/' . auth()->user()->user_image}} /> &nbsp;&nbsp;&nbsp;${element}&nbsp;&nbsp; </div>`;
+            scrollContainerToBottom();
+        }
+        });
+    }
+
+        function close_chat()
+        {
+            document.getElementById('chat_header').innerHTML = 'Chat Area';
+
+            document.getElementById('close_chat_area').innerHTML = '';
+
+            document.getElementById('chat_area').innerHTML = '';
+
+            to_user_id = '';
+        }
     </script>
 </x-app-layout>
