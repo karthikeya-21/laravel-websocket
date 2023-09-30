@@ -226,16 +226,7 @@ li{
     // Display the received message in the 'msgs' div
     const msgsDiv = document.getElementById('msgs');
     if (data.type == 'msg') {
-        const element = `
-        <li class='message-left'>
-            <p class="message">
-            ${data.msg}
-            <span>${data.user} ● ${moment(data.dateTime).fromNow()}</span>
-            </p>
-        </li>
-        `;
-        msgsDiv.innerHTML += `<div class='user-message flex flex-row'><img class="w-16 h-16 rounded-full mt-4" src='storage/${data.img}' />&nbsp;&nbsp;&nbsp; ${element} </div>`;
-        scrollContainerToBottom();
+            add_message_to_chat(data);
     }
     if (data.type == 'load_connected_users') {
         const users_list = document.getElementById('users-list');
@@ -273,6 +264,7 @@ li{
             userTileButton.addEventListener("click", () => {
                 to_user_id = user.id;
                 make_chat_area(user.id,user.name);
+                load_old_messages(from_user_id,user.id);
                 // You can now use "to_user" to send messages to this user
                 console.log(`Message to_user: ${to_user_id}`);
             });
@@ -352,6 +344,13 @@ li{
         load_unread_notification(data.user_id);
         load_friends(data.user_id);
     }
+    if(data.type=='chat_history'){
+        var Chats=data.data;
+        const msgsDiv = document.getElementById('msgs');
+        Chats.forEach(msg=>{
+            add_message_to_chat(msg);
+        })
+    }
 });
 
 
@@ -413,7 +412,7 @@ li{
             <div class="input-group mb-3">
             <div id="send-container">
                                     <x-my-input type="text" id="msg" placeholder="Enter Your Message" />
-                                    <button class="btn btn-primary" id="send-btn">Send Message</button>
+                                    <button class="btn btn-primary" id="send-btn" onclick="send_message()">Send Message</button>
             </div>
             </div>
             `;
@@ -422,38 +421,9 @@ li{
 
             document.getElementById('chat_header').innerHTML = 'Chat with <b>'+to_user_name+'</b>';
 
-            document.getElementById('close_chat_area').innerHTML = '<button type="button" id="close_chat" class="btn btn-danger btn-sm float-end" onclick="close_chat();"><i class="fas fa-times"></i></button>';
+            document.getElementById('close_chat_area').innerHTML = '<button type="button" id="close_chat"  class="btn btn-danger btn-sm float-end" onclick="close_chat();"><i class="fas fa-times"></i></button>';
 
             to_user_id = user_id;
-                    // Handle sending a message when the button is clicked
-        const sendMessageButton = document.getElementById('send-btn');
-        sendMessageButton.addEventListener('click', () => {
-            let message = document.getElementById('msg');
-            if(message.value.trim().length>0){
-            var data={
-                type:'msg',
-                user:"{{Auth::user()->name}}",
-                msg:message.value,
-                to_user_id:to_user_id,
-                img:"{{Auth::user()->user_image}}",
-                dateTime: dateTime.toISOString(),
-            }
-            // Send the message to the server
-            conn.send(JSON.stringify(data));
-            message.value='';
-            const msgsDiv = document.getElementById('msgs');
-            const element = `
-                <li class='message-right'>
-                    <p class="message">
-                    ${data.msg}
-                    <span>${data.user} ● ${moment(data.dateTime).fromNow()}</span>
-                    </p>
-                </li>
-                `;
-            msgsDiv.innerHTML += `<div class='current-user-message flex flex-row-reverse'>&nbsp;&nbsp;&nbsp;<img class="w-16 h-16 rounded-full mt-4" src={{ '/storage/' . auth()->user()->user_image}} /> &nbsp;&nbsp;&nbsp;${element}&nbsp;&nbsp; </div>`;
-            scrollContainerToBottom();
-        }
-        });
     }
 
         function close_chat()
@@ -465,6 +435,59 @@ li{
             document.getElementById('chat_area').innerHTML = '';
 
             to_user_id = '';
+        }
+        function send_message(){
+            let message = document.getElementById('msg');
+            if(message.value.trim().length>0){
+            var data={
+                type:'msg',
+                name:"{{Auth::user()->name}}",
+                chat_message:message.value,
+                from_user_id:from_user_id,
+                to_user_id:to_user_id,
+                user_image:"{{Auth::user()->user_image}}",
+                created_at: dateTime.toISOString(),
+            }
+            // Send the message to the server
+            conn.send(JSON.stringify(data));
+            message.value='';
+        }
+    }
+
+        function add_message_to_chat(data){
+            const msgsDiv = document.getElementById('msgs');
+            if(data.from_user_id==from_user_id){
+            const element = `
+                <li class='message-right'>
+                    <p class="message">
+                    ${data.chat_message}
+                    <span>${data.name} ● ${moment(data.created_at).fromNow()}</span>
+                    </p>
+                </li>
+                `;
+            msgsDiv.innerHTML += `<div class='current-user-message flex flex-row-reverse'>&nbsp;&nbsp;&nbsp;<img class="w-16 h-16 rounded-full mt-4" src={{ '/storage/' . auth()->user()->user_image}} /> &nbsp;&nbsp;&nbsp;${element}&nbsp;&nbsp; </div>`;
+            }
+            else{
+                const element = `
+        <li class='message-left'>
+            <p class="message">
+            ${data.chat_message}
+            <span>${data.name} ● ${moment(data.created_at).fromNow()}</span>
+            </p>
+        </li>
+        `;
+        msgsDiv.innerHTML += `<div class='user-message flex flex-row'><img class="w-16 h-16 rounded-full mt-4" src='storage/${data.user_image}' />&nbsp;&nbsp;&nbsp; ${element} </div>`;
+            }
+            scrollContainerToBottom();
+        }
+
+        function load_old_messages(from_user_id,to_user_id){
+            var data={
+                type : 'loadOldMsg',
+                from_user_id:from_user_id,
+                to_user_id:to_user_id,
+            }
+            conn.send(JSON.stringify(data));
         }
     </script>
 </x-app-layout>

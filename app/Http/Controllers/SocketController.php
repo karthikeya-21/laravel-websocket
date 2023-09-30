@@ -6,6 +6,8 @@ use App\Models\User;
 
 use App\Models\Chat_request;
 
+use App\Models\Chats;
+
 use Illuminate\Http\Request;
 
 use Ratchet\MessageComponentInterface;
@@ -50,9 +52,22 @@ public function onMessage(ConnectionInterface $conn, $msg) {
     $data = json_decode($msg);
 
     if (isset($data->type) && $data->type == 'msg') {
+
+        $chat = new Chats;
+        $chat->from_user_id=$data->from_user_id;
+        $chat->to_user_id=$data->to_user_id;
+        $chat->chat_message=$data->chat_message;
+        $chat->save();
+
+
+
+        $sender_connection_id = User::select('connection_id')->where('id', $data->from_user_id)->get();
+        $receiver_connection_id = User::select('connection_id')->where('id', $data->to_user_id)->get();
         foreach ($this->clients as $client) {
-            $receiver_connection_id = User::select('connection_id')->where('id', $data->to_user_id)->get();
             if ($client->resourceId == $receiver_connection_id[0]->connection_id) {
+                $client->send(json_encode($data));
+            }
+            if($client->resourceId == $sender_connection_id[0]->connection_id){
                 $client->send(json_encode($data));
             }
         }
@@ -234,6 +249,36 @@ public function onMessage(ConnectionInterface $conn, $msg) {
 
                 $client->send(json_encode($send_data));
             }
+        }
+        if($data->type=='loadOldMsg'){
+            $chat_data = Chats::select('chats.id', 'chats.from_user_id', 'chats.to_user_id', 'chats.chat_message','chats.created_at', 'users.name','users.user_image')
+            ->join('users', 'users.id', '=', 'chats.from_user_id')
+            ->where(function ($query) use ($data) {
+                $query->where('chats.from_user_id', $data->from_user_id)
+                    ->where('chats.to_user_id', $data->to_user_id);
+            })
+            ->orWhere(function ($query) use ($data) {
+                $query->where('chats.from_user_id', $data->to_user_id)
+                    ->where('chats.to_user_id', $data->from_user_id);
+            })
+            ->orderBy('chats.id', 'ASC')
+            ->get();
+
+
+
+
+                                    $send_data['data'] = $chat_data;
+                                    $send_data['type'] = 'chat_history';
+                                    $receiver_connection_id = User::select('connection_id')->where('id', $data->from_user_id)->get();
+
+                                    foreach($this->clients as $client)
+                                    {
+                                        if($client->resourceId == $receiver_connection_id[0]->connection_id)
+                                        {
+
+                                            $client->send(json_encode($send_data));
+                                        }
+                                    }
         }
     }
 }
