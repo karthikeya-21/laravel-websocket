@@ -1,5 +1,6 @@
 <x-app-layout>
     <style>
+
         /* Style the message container */
 #msgs {
     max-width: 800px; /* Adjust the max width as needed */
@@ -12,7 +13,28 @@
     flex-direction: column;
     /* border: 1px solid #ccc; */
 }
+#msgs::-webkit-scrollbar {
+  width: 0.1em; /* Width of the scrollbar */
+}
 
+#msgs::-webkit-scrollbar-track {
+  background-color: transparent; /* Background color of the track */
+}
+
+#msgs::-webkit-scrollbar-thumb {
+  background-color: transparent; /* Color of the thumb (draggable part) */
+}
+body::-webkit-scrollbar {
+  width: 0.0001em; /* Width of the scrollbar */
+}
+
+body::-webkit-scrollbar-track {
+  background-color: transparent; /* Background color of the track */
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: transparent; /* Color of the thumb (draggable part) */
+}
 /* Style user messages (sent by others) */
 .user-message {
     /* background-color: #e0e0e0; */
@@ -119,7 +141,21 @@ li{
             background-color: #333; /* Dark card background color */
             color: #ffffff; /* Text color in dark mode */
         }
+        .smallbox{
+            max-height:200px;
+            overflow-y:auto;
+        }
+        .smallbox::-webkit-scrollbar {
+  width: 0.1em; /* Width of the scrollbar */
+}
 
+.smallbox::-webkit-scrollbar-track {
+  background-color: transparent; /* Background color of the track */
+}
+
+.smallbox::-webkit-scrollbar-thumb {
+  background-color: transparent; /* Color of the thumb (draggable part) */
+}
     </style>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
@@ -161,7 +197,7 @@ li{
             <div class="card-header">
                 <h5 class="card-title">User List</h5>
             </div>
-            <div class="card-body" >
+            <div class="card-body smallbox" >
                 <ul class="list-group dark-mode" id="unconnected_users">
                 </ul>
             </div>
@@ -170,7 +206,7 @@ li{
             <div class="card-header">
                 <h5 class="card-title">Requests</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body smallbox">
                 <ul class="list-group dark-mode" id="requests">
 
                 </ul>
@@ -205,14 +241,9 @@ li{
         // Handle the connection being opened
         conn.onopen = function (e) {
             var data={
-                type:"new",
-                user:"{{Auth::user()->name}}",
-                msg:' {{Auth::user()->name}} has entered the room',
-                img:'{{Auth::user()->user_image}}',
+                type:"re-load",
             }
-
             conn.send(JSON.stringify(data));
-            console.log("Connection established!");
             load_all_users(from_user_id);
             load_unread_notification(from_user_id);
             load_friends(from_user_id);
@@ -222,6 +253,14 @@ li{
         conn.addEventListener('message', event => {
     const message = event.data;
     var data = JSON.parse(message);
+    if(data.type=='image_link'){
+        console.log(data.data);
+        document.getElementById('message_area').innerHTML = `<img style="border: none;" src="{{ asset('images/`+data.data+`') }}" class="img-thumbnail img-fluid" />`;
+    }
+    if(data.type=='reload'){
+        load_unread_notification(from_user_id);
+        load_friends(from_user_id);
+    }
 
     // Display the received message in the 'msgs' div
     const msgsDiv = document.getElementById('msgs');
@@ -254,7 +293,11 @@ li{
             // Create user status element
             const userStatus = document.createElement("div");
             userStatus.classList.add("user-status");
-            userStatus.textContent = user.user_status; // Set the user's status
+            if(user.user_status=='Online'){
+            userStatus.textContent = user.user_status;
+            }else{
+                userStatus.textContent = user.last_seen;
+            } // Set the user's status
 
             // Append elements to user tile container
             userInfo.appendChild(userName);
@@ -410,10 +453,18 @@ li{
             <ul id="msgs"></ul>
             <div id="chat_history"></div>
             <div class="input-group mb-3">
-            <div id="send-container">
-                                    <x-my-input type="text" id="msg" placeholder="Enter Your Message" />
-                                    <button class="btn btn-primary" id="send-btn" onclick="send_message()">Send Message</button>
-            </div>
+                <div id="send-container" class="d-flex align-items-center">
+                <!-- Add the upload image icon button -->
+                <label for="upload-image" class="btn btn-warning" style="margin: 10px; color: black;">
+                    <i class="fas fa-image"></i>
+                </label>
+                <!-- Hidden input for uploading image (you can style it as needed) -->
+                <input type="file" id="upload-image" style="display: none;" accept="image/*" onchange="upload_image()">
+                <x-my-div id="message_area" style="width:200px;">
+                </x-my-div>
+
+                    <button class="btn btn-primary" style="margin-left: 10px;" id="send-btn" onclick="send_message()">Send Message</button>
+                </div>
             </div>
             `;
 
@@ -421,7 +472,7 @@ li{
 
             document.getElementById('chat_header').innerHTML = 'Chat with <b>'+to_user_name+'</b>';
 
-            document.getElementById('close_chat_area').innerHTML = '<button type="button" id="close_chat"  class="btn btn-danger btn-sm float-end" onclick="close_chat();"><i class="fas fa-times"></i></button>';
+            document.getElementById('close_chat_area').innerHTML = '<button type="button" id="close_chat"  class="btn btn-danger btn-sm float-end " onclick="close_chat();"><i class="fas fa-times"></i></button>';
 
             to_user_id = user_id;
     }
@@ -437,12 +488,13 @@ li{
             to_user_id = '';
         }
         function send_message(){
-            let message = document.getElementById('msg');
-            if(message.value.trim().length>0){
+            let message = document.getElementById('message_area');
+            var mess = document.getElementById('message_area').innerHTML.trim();
+            if(mess.length>0){
             var data={
                 type:'msg',
                 name:"{{Auth::user()->name}}",
-                chat_message:message.value,
+                chat_message:mess,
                 from_user_id:from_user_id,
                 to_user_id:to_user_id,
                 user_image:"{{Auth::user()->user_image}}",
@@ -450,7 +502,7 @@ li{
             }
             // Send the message to the server
             conn.send(JSON.stringify(data));
-            message.value='';
+            message.innerHTML='';
         }
     }
 
@@ -489,5 +541,52 @@ li{
             }
             conn.send(JSON.stringify(data));
         }
+
+        function sendImage(image){
+            var data={
+                type:'imagedata',
+                from_user_id:from_user_id,
+                to_user_id:to_user_id,
+                image: image,
+            }
+            console.log(data);
+        }
+
+        function upload_image()
+        {
+            var file_element = document.getElementById('upload-image').files[0];
+
+            var file_name = file_element.name;
+
+            var file_extension = file_name.split('.').pop().toLowerCase();
+
+            var allowed_extension = ['png', 'jpg','jpeg'];
+
+            if(allowed_extension.indexOf(file_extension) == -1)
+            {
+                alert("Invalid Image File");
+
+                return false;
+            }
+
+            var file_reader = new FileReader();
+
+            var file_raw_data = new ArrayBuffer();
+
+            file_reader.loadend = function()
+            {
+
+            }
+
+            file_reader.onload = function(event){
+
+                file_raw_data = event.target.result;
+
+                conn.send(file_raw_data);
+            }
+
+            file_reader.readAsArrayBuffer(file_element);
+        }
+
     </script>
 </x-app-layout>

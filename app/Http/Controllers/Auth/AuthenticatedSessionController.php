@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use App\Http\Controllers\Auth\User;
 
+
 class AuthenticatedSessionController extends Controller
 {
     /**

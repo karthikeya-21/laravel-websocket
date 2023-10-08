@@ -14,6 +14,8 @@ use Ratchet\MessageComponentInterface;
 
 use Ratchet\ConnectionInterface;
 
+date_default_timezone_set('Asia/Kolkata');
+
 class SocketController extends Controller implements MessageComponentInterface
 {
     protected $clients;
@@ -26,11 +28,11 @@ class SocketController extends Controller implements MessageComponentInterface
     public function onOpen(ConnectionInterface $conn) {
         // Handle new WebSocket connections
         $this->clients->attach($conn);
-        $data=[
-            'user'=>'server',
-            'msg'=>'Welcome to the WebSocket server!',
-            'img'=>'avatars/empty_pp.jpg',
-        ];
+        $data['type']='reload';
+        foreach($this->clients as $client)
+        {
+            $client->send(json_encode($data));
+        }
         // $conn->send(json_encode($data));
         $querystring = $conn->httpRequest->getUri()->getQuery();
 
@@ -48,6 +50,27 @@ class SocketController extends Controller implements MessageComponentInterface
 
 
 public function onMessage(ConnectionInterface $conn, $msg) {
+
+
+    if(preg_match('~[^\x20-\x7E\t\r\n]~', $msg) > 0)
+        {
+            //receiver image in binary string message
+
+            $image_name = time() . '.jpg';
+
+            file_put_contents(public_path('images/') . $image_name, $msg);
+
+            $send_data['data'] = $image_name;
+            $send_data['type'] = 'image_link';
+
+            foreach($this->clients as $client)
+            {
+                if($client->resourceId == $conn->resourceId)
+                {
+                    $client->send(json_encode($send_data));
+                }
+            }
+        }
     // Handle WebSocket messages
     $data = json_decode($msg);
 
@@ -263,22 +286,18 @@ public function onMessage(ConnectionInterface $conn, $msg) {
             })
             ->orderBy('chats.id', 'ASC')
             ->get();
+            $send_data['data'] = $chat_data;
+            $send_data['type'] = 'chat_history';
+            $receiver_connection_id = User::select('connection_id')->where('id', $data->from_user_id)->get();
 
+            foreach($this->clients as $client)
+            {
+                if($client->resourceId == $receiver_connection_id[0]->connection_id)
+                {
 
-
-
-                                    $send_data['data'] = $chat_data;
-                                    $send_data['type'] = 'chat_history';
-                                    $receiver_connection_id = User::select('connection_id')->where('id', $data->from_user_id)->get();
-
-                                    foreach($this->clients as $client)
-                                    {
-                                        if($client->resourceId == $receiver_connection_id[0]->connection_id)
-                                        {
-
-                                            $client->send(json_encode($send_data));
-                                        }
-                                    }
+                    $client->send(json_encode($send_data));
+                }
+            }
         }
     }
 }
@@ -288,7 +307,11 @@ public function onMessage(ConnectionInterface $conn, $msg) {
         // Handle WebSocket connection close
         $this->clients->detach($conn);
         $querystring = $conn->httpRequest->getUri()->getQuery();
-
+        $data['type']='reload';
+        foreach($this->clients as $client)
+        {
+            $client->send(json_encode($data));
+        }
         parse_str($querystring, $queryarray);
         if (isset($queryarray['token'])) {
             $token = $queryarray['token'];
