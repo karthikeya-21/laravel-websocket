@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('token');
             $table->integer('connection_id')->nullable();
             $table->enum('user_status', ['Offline', 'Online']);
-            $table->string('user_image')->nullable();
+            $table->string('user_image')->default('avatars/empty.png');
         });
     }
 
