@@ -89,6 +89,19 @@ li{
   font-size: 12px;
   margin-top: 4px;
 }
+
+#chat_area{
+    background-image:url(storage/wtsapp_bg.jpeg);
+    /* height: 400px; */
+}
+.empty-chat{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400px;
+
+}
+
 #send-container {
             /* display: flex;
             justify-content: space-between; */
@@ -231,6 +244,7 @@ li{
         // Create a WebSocket connection to the server
         var conn = new WebSocket('ws://127.0.0.1:8090/?token={{auth()->user()->token}}');
         console.log(conn);
+        empty_chat();
         const dateTime = new Date();
         var from_user_id={{Auth::user()->id}};
         var to_user_id='';
@@ -334,6 +348,10 @@ li{
         }
 
         users_list.innerHTML = '';
+        if (userData.length === 0){
+            let noUsersText=document.createTextNode("No New Users Found!");
+            users_list.appendChild(noUsersText);
+        };
         userData.forEach(user => {
             const listItem = createUserListItem(user);
             users_list.appendChild(listItem);
@@ -346,7 +364,11 @@ li{
         const users_list = document.getElementById('requests');
         users_list.innerHTML = '';
         var userData = data.data;
-
+        if (userData.length === 0){
+            let noUsersText=document.createTextNode("No Requests Found!");
+            users_list.appendChild(noUsersText);
+        }
+        else{
         function createUserListItem(user) {
             console.log(user);
             const listItem = document.createElement("li");
@@ -378,6 +400,7 @@ li{
             const listItem = createUserListItem(user);
             users_list.appendChild(listItem);
         });
+    }
     }
     if (data.type == 'updateUI') {
         load_all_users(from_user_id);
@@ -486,6 +509,7 @@ li{
             document.getElementById('chat_area').innerHTML = '';
 
             to_user_id = '';
+            empty_chat();
         }
         function send_message(){
             let message = document.getElementById('message_area');
@@ -504,6 +528,13 @@ li{
             conn.send(JSON.stringify(data));
             message.innerHTML='';
         }
+    }
+
+    function empty_chat(){
+        var html=`<div class="empty-chat">
+            <img src="storage/chat_bg.png" alt="" width=300 height=350>
+        </div>`;
+        document.getElementById("chat_area").innerHTML=html;
     }
 
         function add_message_to_chat(data){

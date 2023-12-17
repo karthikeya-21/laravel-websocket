@@ -11,7 +11,7 @@
     <div id="msgs"></div>
     <script>
         // Create a WebSocket connection to the server
-        var conn = new WebSocket('ws://10.9.28.248:8090/');
+        var conn = new WebSocket('ws://127.0.0.1:8090/');
 
         // Handle the connection being opened
         conn.onopen = function (e) {
@@ -22,7 +22,7 @@
         conn.addEventListener('message', event => {
             const message = event.data;
             console.log(`Server says: ${message}`);
-            
+
             // Display the received message in the 'msgs' div
             const msgsDiv = document.getElementById('msgs');
             msgsDiv.innerHTML += `<p>${message}</p>`;
@@ -32,7 +32,7 @@
         const sendMessageButton = document.getElementById('send-btn');
         sendMessageButton.addEventListener('click', () => {
             let message = document.getElementById('msg');
-            
+
             // Send the message to the server
             conn.send(message.value);
             message.value='';
