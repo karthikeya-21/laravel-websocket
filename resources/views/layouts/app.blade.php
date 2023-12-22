@@ -17,8 +17,9 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-
+        <link rel="stylesheet" href="https://unpkg.com/emoji-button@5.0.1/dist/emoji-button.css"/>
         <script src="https://kit.fontawesome.com/e7a0527a2e.js" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/emoji-button@5.0.1/dist/emoji-button.js"></script>
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>

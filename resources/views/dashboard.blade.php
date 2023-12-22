@@ -483,6 +483,13 @@ li{
                 </label>
                 <!-- Hidden input for uploading image (you can style it as needed) -->
                 <input type="file" id="upload-image" style="display: none;" accept="image/*" onchange="upload_image()">
+                <!-- Add the emoji picker button using inline style for demonstration -->
+                <button class="btn btn-info" style="margin: 10px;" id="emoji-button"">
+                    <i class="far fa-smile"></i>
+                </button>
+
+                <!-- Emoji Picker Container (Initially Hidden) -->
+                <div id="emoji-picker" style="display: block;"></div>
                 <x-my-div id="message_area" style="width:200px;">
                 </x-my-div>
 
@@ -619,5 +626,19 @@ li{
             file_reader.readAsArrayBuffer(file_element);
         }
 
+        const picker = new EmojiButton();
+
+        // Add emoji picker to the emoji button
+        const emojiButton = document.getElementById('emoji-button');
+        emojiButton.addEventListener('click', () => {
+        picker.togglePicker(emojiButton);
+        });
+
+        // Close emoji picker when clicking outside of it
+        document.addEventListener('click', (event) => {
+        if (!emojiButton.contains(event.target)) {
+            picker.hidePicker();
+        }
+        });
     </script>
 </x-app-layout>
